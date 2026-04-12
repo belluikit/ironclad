@@ -7,13 +7,22 @@ import (
 	"github.com/trendvidia/protowire/encoding/pb"
 )
 
+// Feature maps a named feature to the plugin symbols it gates.
+// Symbols listed under a feature are only accessible if the license
+// includes that feature in its Entitlements.
+type Feature struct {
+	Name    string   `protowire:"1"` // e.g., "charts-3d"
+	Symbols []string `protowire:"2"` // e.g., ["Render3DChart", "Configure3D"]
+}
+
 // Manifest holds metadata about the submitted artifact.
 type Manifest struct {
-	ContentHash string `protowire:"1"` // "sha256:<hex>"
-	ContentType string `protowire:"2"`
-	Name        string `protowire:"3"`
-	Version     string `protowire:"4"`
-	Description string `protowire:"5"`
+	ContentHash string    `protowire:"1"` // "sha256:<hex>"
+	ContentType string    `protowire:"2"`
+	Name        string    `protowire:"3"`
+	Version     string    `protowire:"4"`
+	Description string    `protowire:"5"`
+	Features    []Feature `protowire:"6"` // feature-gated symbols
 }
 
 // SignedManifest pairs the protowire-encoded manifest bytes with the

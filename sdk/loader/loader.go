@@ -5,9 +5,10 @@
 // the payload in memory, and loads it as a Go plugin using platform-specific
 // mechanisms that avoid exposing the decrypted binary on the real filesystem.
 //
-// On Linux, the decrypted binary is loaded entirely from memory via memfd_create.
-// On macOS and Windows, a secure temporary file is used with restrictive
-// permissions and immediate deletion after loading.
+// Feature gating: if the developer declared feature-to-symbol mappings in
+// their manifest, Lookup() will refuse to return symbols gated by features
+// not present in the license's Entitlements. Ungated symbols are always
+// accessible.
 //
 // Usage:
 //
@@ -19,8 +20,8 @@
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	sym, err := p.Lookup("ProcessData")
-//	fn := sym.(func([]byte) []byte)
+//	sym, err := p.Lookup("Render2DChart")  // always available
+//	sym, err := p.Lookup("Render3DChart")  // only if "charts-3d" is in entitlements
 package loader
 
 import (
@@ -31,33 +32,54 @@ import (
 	"plugin"
 
 	sdk "github.com/trendvidia/ironclad/sdk"
+	"github.com/trendvidia/ironclad/sdk/container"
 	tcrypto "github.com/trendvidia/ironclad/sdk/crypto"
+	"github.com/trendvidia/ironclad/sdk/submission"
 	"github.com/trendvidia/ironclad/sdk/verify"
+	"github.com/trendvidia/protowire/encoding/pb"
 )
 
 var (
-	// ErrMissingOption is returned when a required option is not set.
 	ErrMissingOption = errors.New("loader: required option not set")
-
-	// ErrLicenseInvalid is returned when the license validation fails
-	// (expired, revoked, or invalid signature).
 	ErrLicenseInvalid = errors.New("loader: license validation failed")
+	ErrPlatformLoad  = errors.New("loader: platform load failed")
 
-	// ErrPlatformLoad is returned when the platform-specific loading
-	// mechanism fails (memfd, tmpfile, dlopen, etc.).
-	ErrPlatformLoad = errors.New("loader: platform load failed")
+	// ErrFeatureNotLicensed is returned when Lookup() is called for a
+	// symbol that is gated by a feature not present in the license.
+	ErrFeatureNotLicensed = errors.New("loader: feature not licensed")
 )
 
-// SecurePlugin wraps a loaded Go plugin with controlled access.
-// It mirrors the plugin.Plugin API without exposing the underlying
-// plugin pointer.
+// SecurePlugin wraps a loaded Go plugin with entitlement-based access control.
+// Symbols gated by features not in the license's Entitlements are blocked.
 type SecurePlugin struct {
-	p *plugin.Plugin
+	p            *plugin.Plugin
+	gatedSymbols map[string]string // symbol name → required feature
+	entitlements map[string]bool   // licensed features
 }
 
-// Lookup searches for a symbol (exported variable or function) in the plugin.
+// Lookup searches for a symbol in the plugin.
+// Returns ErrFeatureNotLicensed if the symbol is gated by an unlicensed feature.
 func (sp *SecurePlugin) Lookup(symName string) (plugin.Symbol, error) {
+	if requiredFeature, gated := sp.gatedSymbols[symName]; gated {
+		if !sp.entitlements[requiredFeature] {
+			return nil, fmt.Errorf("%w: symbol %q requires feature %q", ErrFeatureNotLicensed, symName, requiredFeature)
+		}
+	}
 	return sp.p.Lookup(symName)
+}
+
+// HasFeature reports whether the given feature is licensed.
+func (sp *SecurePlugin) HasFeature(feature string) bool {
+	return sp.entitlements[feature]
+}
+
+// Features returns the list of licensed features.
+func (sp *SecurePlugin) Features() []string {
+	features := make([]string, 0, len(sp.entitlements))
+	for f := range sp.entitlements {
+		features = append(features, f)
+	}
+	return features
 }
 
 // Option configures the loader.
@@ -70,44 +92,24 @@ type options struct {
 	caRoots     *x509.CertPool
 }
 
-// WithSigningKey sets the Vault Transit key name used for verifying
-// license and renewal token signatures.
 func WithSigningKey(key string) Option {
 	return func(o *options) { o.signingKey = key }
 }
 
-// WithEnvelopeKey sets the Vault Transit key name used for verifying
-// the content envelope signature.
 func WithEnvelopeKey(key string) Option {
 	return func(o *options) { o.envelopeKey = key }
 }
 
-// WithDEKKeyName sets the Vault Transit key name used for unwrapping
-// the Data Encryption Key (DEK).
 func WithDEKKeyName(key string) Option {
 	return func(o *options) { o.dekKeyName = key }
 }
 
-// WithCARoots sets the trusted CA root certificates for verifying
-// developer certificate chains. Pass nil to skip developer signature
-// verification.
 func WithCARoots(roots *x509.CertPool) Option {
 	return func(o *options) { o.caRoots = roots }
 }
 
-// Open loads a .tcn container as a Go plugin.
-//
-// It performs the following steps:
-//  1. Parses the container file
-//  2. Validates all signatures and checks the license state
-//  3. Decrypts the payload (shared library) in memory
-//  4. Loads the decrypted binary as a Go plugin using a platform-specific
-//     mechanism that minimizes disk exposure
-//  5. Zeros the decrypted buffer
-//
-// The verifier and unwrapper are typically backed by Vault Transit
-// (via the admin module's vault.TransitClient), but any implementation
-// of the interfaces will work.
+// Open loads a .tcn container as a Go plugin with entitlement-based
+// feature gating.
 func Open(
 	ctx context.Context,
 	path string,
@@ -138,12 +140,17 @@ func Open(
 		return nil, fmt.Errorf("%w: status=%s", ErrLicenseInvalid, result.Status)
 	}
 
+	// Build feature gate from developer manifest + license entitlements
+	gatedSymbols, entitlements, err := buildFeatureGate(c)
+	if err != nil {
+		return nil, fmt.Errorf("loader: build feature gate: %w", err)
+	}
+
 	// Decrypt payload
 	plaintext, err := sdk.Decrypt(ctx, c, unwrapper, o.dekKeyName)
 	if err != nil {
 		return nil, fmt.Errorf("loader: decrypt: %w", err)
 	}
-	// Zero the decrypted buffer after platformLoad has mapped it
 	defer tcrypto.Zero(plaintext)
 
 	// Platform-specific secure loading
@@ -152,5 +159,40 @@ func Open(
 		return nil, fmt.Errorf("%w: %v", ErrPlatformLoad, err)
 	}
 
-	return &SecurePlugin{p: p}, nil
+	return &SecurePlugin{
+		p:            p,
+		gatedSymbols: gatedSymbols,
+		entitlements: entitlements,
+	}, nil
+}
+
+// buildFeatureGate parses the developer manifest for feature-to-symbol
+// mappings and the license for entitlements.
+func buildFeatureGate(c *container.Container) (gatedSymbols map[string]string, entitlements map[string]bool, err error) {
+	gatedSymbols = make(map[string]string)
+	entitlements = make(map[string]bool)
+
+	// Parse license entitlements
+	licenseToken, err := c.License.Token()
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse license: %w", err)
+	}
+	for _, e := range licenseToken.Entitlements {
+		entitlements[e] = true
+	}
+
+	// Parse developer manifest for feature-gated symbols
+	if len(c.Envelope.DeveloperManifest) > 0 {
+		var manifest submission.Manifest
+		if err := pb.Unmarshal(c.Envelope.DeveloperManifest, &manifest); err != nil {
+			return nil, nil, fmt.Errorf("parse developer manifest: %w", err)
+		}
+		for _, feature := range manifest.Features {
+			for _, sym := range feature.Symbols {
+				gatedSymbols[sym] = feature.Name
+			}
+		}
+	}
+
+	return gatedSymbols, entitlements, nil
 }
