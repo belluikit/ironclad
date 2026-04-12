@@ -2,6 +2,12 @@ package license
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"math/big"
 	"testing"
 	"time"
 
@@ -155,4 +161,114 @@ func TestStatusString(t *testing.T) {
 	assert.Equal(t, "IN_GRACE", StatusInGrace.String())
 	assert.Equal(t, "EXPIRED", StatusExpired.String())
 	assert.Equal(t, "REVOKED", StatusRevoked.String())
+}
+
+func TestValidateEnvelopeDualSignature(t *testing.T) {
+	ctx := context.Background()
+	mock := verify.NewMock("ironclad-envelope")
+
+	// Generate developer keypair and self-signed cert
+	devKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	devCertTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "Test Dev", Organization: []string{"Test"}},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		IsCA:         true,
+		BasicConstraintsValid: true,
+	}
+	devCertDER, err := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
+	require.NoError(t, err)
+
+	env := container.ContentEnvelope{
+		FormatVersion:          container.FormatVersion,
+		ContentID:              contentID,
+		ContentType:            container.ContentTypeSharedLibrary,
+		HashAlgo:               container.HashAlgoSHA256,
+		ContentHash:            [32]byte{1, 2, 3},
+		WrappedDEK:             []byte("wrapped"),
+		EncryptAlgo:            container.EncryptionAlgoAES256GCM,
+		NonceLen:               12,
+		Nonce:                  make([]byte, 12),
+		DeveloperCertificate:   devCertDER,
+		DistributorCertificate: []byte("dist-cert"),
+		Payload:                []byte("payload"),
+	}
+
+	// Developer signs
+	devSig, err := ecdsa.SignASN1(rand.Reader, devKey, env.DeveloperSignableBytes())
+	require.NoError(t, err)
+	env.DeveloperSignature = devSig
+
+	// Distributor signs
+	distSig, err := mock.Sign(ctx, "ironclad-envelope", env.DistributorSignableBytes())
+	require.NoError(t, err)
+	env.DistributorSignature = []byte(distSig)
+
+	// Set up CA roots with the self-signed cert
+	caRoots := x509.NewCertPool()
+	devCert, _ := x509.ParseCertificate(devCertDER)
+	caRoots.AddCert(devCert)
+
+	// Validate — should verify both signatures
+	v := NewValidator(mock, "ironclad-sign", caRoots)
+	err = v.ValidateEnvelope(ctx, &env, "ironclad-envelope")
+	require.NoError(t, err)
+}
+
+func TestValidateEnvelopeBadDeveloperSig(t *testing.T) {
+	ctx := context.Background()
+	mock := verify.NewMock("ironclad-envelope")
+
+	devKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	devCertTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "Test Dev"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		IsCA:         true,
+		BasicConstraintsValid: true,
+	}
+	devCertDER, _ := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
+
+	env := container.ContentEnvelope{
+		FormatVersion:          container.FormatVersion,
+		ContentID:              contentID,
+		ContentType:            container.ContentTypeDataFile,
+		HashAlgo:               container.HashAlgoSHA256,
+		DeveloperCertificate:   devCertDER,
+		DeveloperSignature:     []byte("bad-signature"),
+		DistributorCertificate: []byte("dist-cert"),
+	}
+
+	caRoots := x509.NewCertPool()
+	devCert, _ := x509.ParseCertificate(devCertDER)
+	caRoots.AddCert(devCert)
+
+	v := NewValidator(mock, "ironclad-sign", caRoots)
+	err := v.ValidateEnvelope(ctx, &env, "ironclad-envelope")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "developer signature invalid")
+}
+
+func TestValidateEnvelopeBadDistributorSig(t *testing.T) {
+	ctx := context.Background()
+	mock := verify.NewMock("ironclad-envelope")
+
+	env := container.ContentEnvelope{
+		FormatVersion:          container.FormatVersion,
+		ContentID:              contentID,
+		DistributorCertificate: []byte("dist-cert"),
+		DistributorSignature:   []byte("bad-distributor-sig"),
+	}
+
+	// No caRoots — skip developer sig check, test distributor failure
+	v := NewValidator(mock, "ironclad-sign", nil)
+	err := v.ValidateEnvelope(ctx, &env, "ironclad-envelope")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "distributor")
 }
