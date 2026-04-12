@@ -26,7 +26,7 @@ func newInspectCmd() *cobra.Command {
 
 			fmt.Fprintf(w, "Container:      %s\n", args[0])
 			fmt.Fprintf(w, "Format Version: %d\n", env.FormatVersion)
-			fmt.Fprintf(w, "Content ID:     %s\n", env.ContentID)
+			fmt.Fprintf(w, "Content ID:     %s\n", env.ContentUUID())
 			fmt.Fprintf(w, "Content Type:   %s\n", sdkcontainer.ContentTypeName(env.ContentType))
 			fmt.Fprintf(w, "Content Hash:   sha256:%x\n", env.ContentHash)
 			fmt.Fprintf(w, "Encryption:     AES-256-GCM\n")
@@ -41,10 +41,10 @@ func newInspectCmd() *cobra.Command {
 			}
 
 			fmt.Fprintf(w, "\nLicense:\n")
-			fmt.Fprintf(w, "  License ID:   %s\n", licenseToken.LicenseID)
+			fmt.Fprintf(w, "  License ID:   %s\n", licenseToken.LicenseUUID())
 			fmt.Fprintf(w, "  Subject:      %s\n", licenseToken.Subject)
-			fmt.Fprintf(w, "  Issued:       %s\n", licenseToken.IssuedAt.Format(time.RFC3339))
-			fmt.Fprintf(w, "  Expires:      %s\n", licenseToken.ExpiresAt.Format(time.RFC3339))
+			fmt.Fprintf(w, "  Issued:       %s\n", licenseToken.IssuedAt().Format(time.RFC3339))
+			fmt.Fprintf(w, "  Expires:      %s\n", licenseToken.ExpiresAt().Format(time.RFC3339))
 			fmt.Fprintf(w, "  Grace Period: %s\n", time.Duration(licenseToken.GracePeriodSeconds)*time.Second)
 			if len(licenseToken.Entitlements) > 0 {
 				fmt.Fprintf(w, "  Entitlements: %v\n", licenseToken.Entitlements)
@@ -60,8 +60,8 @@ func newInspectCmd() *cobra.Command {
 						continue
 					}
 					fmt.Fprintf(w, "  [%d] %s -> extends to %s\n", i,
-						rt.IssuedAt.Format("2006-01-02"),
-						rt.NewExpiresAt.Format("2006-01-02"))
+						rt.IssuedAt().Format("2006-01-02"),
+						rt.NewExpiresAt().Format("2006-01-02"))
 				}
 			}
 

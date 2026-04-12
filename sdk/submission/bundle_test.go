@@ -2,11 +2,11 @@ package submission
 
 import (
 	"bytes"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trendvidia/protowire/encoding/pb"
 )
 
 func TestBundleRoundTrip(t *testing.T) {
@@ -17,7 +17,7 @@ func TestBundleRoundTrip(t *testing.T) {
 		Version:     "1.2.3",
 		Description: "A test extension",
 	}
-	manifestBytes, err := json.Marshal(manifest)
+	manifestBytes, err := pb.Marshal(manifest)
 	require.NoError(t, err)
 
 	b := &Bundle{
@@ -58,7 +58,7 @@ func TestBundleRoundTrip(t *testing.T) {
 }
 
 func TestBundleInvalidMagic(t *testing.T) {
-	manifestBytes, _ := json.Marshal(&Manifest{ContentHash: "sha256:abc", ContentType: "data-file", Name: "test", Version: "1.0.0"})
+	manifestBytes, _ := pb.Marshal(&Manifest{ContentHash: "sha256:abc", ContentType: "data-file", Name: "test", Version: "1.0.0"})
 
 	b := &Bundle{
 		SignedManifest: SignedManifest{ManifestBytes: manifestBytes, DeveloperCertificate: []byte("cert"), DeveloperSignature: []byte("sig")},

@@ -71,6 +71,7 @@ type PackConfig struct {
 	EnvelopeKeyName        string
 	DeveloperCertificate   []byte // DER X.509 cert from developer submission
 	DeveloperSignature     []byte // ECDSA signature from developer submission
+	DeveloperManifest      []byte // protowire-encoded manifest bytes from developer submission
 	DistributorCertificate []byte // DER X.509 cert for the platform
 	Subject                string
 	ExpiresAt              time.Time
@@ -112,16 +113,17 @@ func (p *Packager) Pack(ctx context.Context, input io.Reader, output io.Writer, 
 
 	env := sdkcontainer.ContentEnvelope{
 		FormatVersion:          sdkcontainer.FormatVersion,
-		ContentID:              cfg.ContentID,
+		ContentID:              cfg.ContentID[:],
 		ContentType:            cfg.ContentType,
 		HashAlgo:               sdkcontainer.HashAlgoSHA256,
-		ContentHash:            contentHash,
+		ContentHash:            contentHash[:],
 		WrappedDEK:             sealed.WrappedDEK,
 		EncryptAlgo:            sdkcontainer.EncryptionAlgoAES256GCM,
 		NonceLen:               uint8(len(sealed.Nonce)),
 		Nonce:                  sealed.Nonce,
 		DeveloperCertificate:   cfg.DeveloperCertificate,
 		DeveloperSignature:     cfg.DeveloperSignature,
+		DeveloperManifest:      cfg.DeveloperManifest,
 		DistributorCertificate: cfg.DistributorCertificate,
 		Payload:                sealed.Ciphertext,
 	}
@@ -132,12 +134,13 @@ func (p *Packager) Pack(ctx context.Context, input io.Reader, output io.Writer, 
 	}
 
 	now := time.Now().UTC()
+	licID := uuid.New()
 	licenseToken := &sdkcontainer.LicenseToken{
-		LicenseID:          uuid.New(),
-		ContentID:          cfg.ContentID,
-		IssuedAt:           now,
-		ExpiresAt:          cfg.ExpiresAt,
-		GracePeriodSeconds: int(cfg.GracePeriod.Seconds()),
+		LicenseID:          licID[:],
+		ContentID:          cfg.ContentID[:],
+		IssuedAtUnix:       now.Unix(),
+		ExpiresAtUnix:      cfg.ExpiresAt.Unix(),
+		GracePeriodSeconds: int32(cfg.GracePeriod.Seconds()),
 		Subject:            cfg.Subject,
 		Entitlements:       cfg.Entitlements,
 		RenewalEndpoint:    cfg.RenewalEndpoint,

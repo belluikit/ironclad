@@ -19,9 +19,11 @@ import (
 var MagicBytes = [4]byte{0x89, 'T', 'S', 'B'}
 
 const (
-	FormatVersion         uint16 = 1
+	FormatVersion         uint16 = 2
+	MinSupportedVersion   uint16 = 2
+	MaxSupportedVersion   uint16 = 2
 	FileHeaderSize               = 32
-	SectionIndexEntrySize        = 16
+	SectionIndexEntrySize        = 24
 )
 
 // Section types for submission bundles.
@@ -45,20 +47,21 @@ type FileHeader struct {
 	Reserved     [20]byte
 }
 
-// SectionIndexEntry describes one section.
+// SectionIndexEntry describes one section (24 bytes).
 type SectionIndexEntry struct {
-	Type   uint16
-	Pad    uint16
-	Offset uint32
-	Length uint64
+	Type     uint16
+	Flags    uint16
+	Reserved uint32
+	Offset   uint64
+	Length   uint64
 }
 
 func (h *FileHeader) Validate() error {
 	if h.Magic != MagicBytes {
 		return ErrInvalidMagic
 	}
-	if h.Version != FormatVersion {
-		return fmt.Errorf("%w: got %d, want %d", ErrInvalidVersion, h.Version, FormatVersion)
+	if h.Version < MinSupportedVersion || h.Version > MaxSupportedVersion {
+		return fmt.Errorf("%w: got %d, supported [%d, %d]", ErrInvalidVersion, h.Version, MinSupportedVersion, MaxSupportedVersion)
 	}
 	return nil
 }
@@ -87,9 +90,10 @@ func (h *FileHeader) UnmarshalBinary(data []byte) error {
 func (e *SectionIndexEntry) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, SectionIndexEntrySize)
 	binary.BigEndian.PutUint16(buf[0:2], e.Type)
-	binary.BigEndian.PutUint16(buf[2:4], e.Pad)
-	binary.BigEndian.PutUint32(buf[4:8], e.Offset)
-	binary.BigEndian.PutUint64(buf[8:16], e.Length)
+	binary.BigEndian.PutUint16(buf[2:4], e.Flags)
+	binary.BigEndian.PutUint32(buf[4:8], e.Reserved)
+	binary.BigEndian.PutUint64(buf[8:16], e.Offset)
+	binary.BigEndian.PutUint64(buf[16:24], e.Length)
 	return buf, nil
 }
 
@@ -98,9 +102,10 @@ func (e *SectionIndexEntry) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("%w: section index entry too short", ErrTruncated)
 	}
 	e.Type = binary.BigEndian.Uint16(data[0:2])
-	e.Pad = binary.BigEndian.Uint16(data[2:4])
-	e.Offset = binary.BigEndian.Uint32(data[4:8])
-	e.Length = binary.BigEndian.Uint64(data[8:16])
+	e.Flags = binary.BigEndian.Uint16(data[2:4])
+	e.Reserved = binary.BigEndian.Uint32(data[4:8])
+	e.Offset = binary.BigEndian.Uint64(data[8:16])
+	e.Length = binary.BigEndian.Uint64(data[16:24])
 	return nil
 }
 

@@ -89,13 +89,13 @@ func newPackCmd() *cobra.Command {
 
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "Container created: %s\n", output)
-			fmt.Fprintf(w, "Content ID: %s\n", c.Envelope.ContentID)
+			fmt.Fprintf(w, "Content ID: %s\n", c.Envelope.ContentUUID())
 			fmt.Fprintf(w, "Content Type: %s\n", sdkcontainer.ContentTypeName(c.Envelope.ContentType))
 
 			licenseToken, _ := c.License.Token()
 			if licenseToken != nil {
-				fmt.Fprintf(w, "License ID: %s\n", licenseToken.LicenseID)
-				fmt.Fprintf(w, "Expires: %s\n", licenseToken.ExpiresAt.Format(time.RFC3339))
+				fmt.Fprintf(w, "License ID: %s\n", licenseToken.LicenseUUID())
+				fmt.Fprintf(w, "Expires: %s\n", licenseToken.ExpiresAt().Format(time.RFC3339))
 				fmt.Fprintf(w, "Grace Period: %s\n", time.Duration(licenseToken.GracePeriodSeconds)*time.Second)
 			}
 

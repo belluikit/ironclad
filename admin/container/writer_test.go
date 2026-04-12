@@ -14,11 +14,12 @@ import (
 
 func testContainer() *sdkcontainer.Container {
 	contentID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	licenseID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	licenseToken := &sdkcontainer.LicenseToken{
-		LicenseID:          uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-		ContentID:          contentID,
-		IssuedAt:           time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC),
-		ExpiresAt:          time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC),
+		LicenseID:          licenseID[:],
+		ContentID:          contentID[:],
+		IssuedAtUnix:       time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC).Unix(),
+		ExpiresAtUnix:      time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC).Unix(),
 		GracePeriodSeconds: 259200,
 		Subject:            "test",
 		RenewalEndpoint:    "https://example.com/renew",
@@ -31,10 +32,10 @@ func testContainer() *sdkcontainer.Container {
 		Header: sdkcontainer.NewFileHeader(2),
 		Envelope: sdkcontainer.ContentEnvelope{
 			FormatVersion:          sdkcontainer.FormatVersion,
-			ContentID:              contentID,
+			ContentID:              contentID[:],
 			ContentType:            sdkcontainer.ContentTypeDataFile,
 			HashAlgo:               sdkcontainer.HashAlgoSHA256,
-			ContentHash:            [32]byte{1, 2, 3},
+			ContentHash:            []byte{1, 2, 3},
 			WrappedDEK:             []byte("wrapped-dek"),
 			EncryptAlgo:            sdkcontainer.EncryptionAlgoAES256GCM,
 			NonceLen:               12,
@@ -69,14 +70,15 @@ func TestWriteAndReadContainer(t *testing.T) {
 func TestWriteContainerWithRenewals(t *testing.T) {
 	c := testContainer()
 
-	grace := 172800
+	renewalID := uuid.New()
+	parentRef := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	rt := &sdkcontainer.RenewalToken{
-		RenewalID:             uuid.New(),
-		ParentRef:             uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		RenewalID:             renewalID[:],
+		ParentRef:             parentRef[:],
 		ContentID:             c.Envelope.ContentID,
-		IssuedAt:              time.Now().UTC(),
-		NewExpiresAt:          time.Now().Add(90 * 24 * time.Hour).UTC(),
-		NewGracePeriodSeconds: &grace,
+		IssuedAtUnix:          time.Now().UTC().Unix(),
+		NewExpiresAtUnix:      time.Now().Add(90 * 24 * time.Hour).UTC().Unix(),
+		NewGracePeriodSeconds: 172800,
 		SigningKeyID:          "ironclad-sign",
 	}
 	sr, _ := sdkcontainer.NewSignedRenewal(rt)
@@ -106,13 +108,15 @@ func TestAppendRenewal(t *testing.T) {
 	origEnvData, _ := c.Envelope.MarshalBinary()
 
 	// Append renewal
+	renewalID := uuid.New()
+	parentRef := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	rt := &sdkcontainer.RenewalToken{
-		RenewalID:    uuid.New(),
-		ParentRef:    uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-		ContentID:    c.Envelope.ContentID,
-		IssuedAt:     time.Now().UTC(),
-		NewExpiresAt: time.Now().Add(90 * 24 * time.Hour).UTC(),
-		SigningKeyID: "ironclad-sign",
+		RenewalID:        renewalID[:],
+		ParentRef:        parentRef[:],
+		ContentID:        c.Envelope.ContentID,
+		IssuedAtUnix:     time.Now().UTC().Unix(),
+		NewExpiresAtUnix: time.Now().Add(90 * 24 * time.Hour).UTC().Unix(),
+		SigningKeyID:     "ironclad-sign",
 	}
 	sr, _ := sdkcontainer.NewSignedRenewal(rt)
 	sr.Signature = []byte("renewal-sig")

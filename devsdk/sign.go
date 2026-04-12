@@ -16,11 +16,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 
 	"github.com/trendvidia/ironclad/sdk/submission"
+	"github.com/trendvidia/protowire/encoding/pb"
 )
 
 // GenerateKeyPair generates a new ECDSA P-256 private key.
@@ -66,7 +66,7 @@ func SignArtifact(key *ecdsa.PrivateKey, certDER []byte, content []byte, name, v
 		Description: description,
 	}
 
-	manifestBytes, err := json.Marshal(manifest)
+	manifestBytes, err := pb.Marshal(manifest)
 	if err != nil {
 		return nil, fmt.Errorf("marshal manifest: %w", err)
 	}

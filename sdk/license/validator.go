@@ -1,11 +1,11 @@
 package license
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/x509"
 	"fmt"
-	"math/big"
 
 	"github.com/trendvidia/ironclad/sdk/container"
 	"github.com/trendvidia/ironclad/sdk/verify"
@@ -23,26 +23,37 @@ type ValidationResult struct {
 
 // Validator validates container signatures and license state.
 type Validator struct {
-	verifier   verify.SignatureVerifier // for distributor sigs (Vault Transit)
-	signingKey string                  // key name for license/renewal signatures
-	caRoots    *x509.CertPool          // trusted CA roots for developer cert verification
+	verifier           verify.SignatureVerifier // for distributor sigs (Vault Transit)
+	signingKey         string                  // key name for license/renewal signatures
+	caRoots            *x509.CertPool          // trusted CA roots for developer cert verification
+	revocationChecker  verify.RevocationChecker // optional, checks cert revocation
+}
+
+// ValidatorOption configures optional validator behavior.
+type ValidatorOption func(*Validator)
+
+// WithRevocationChecker adds certificate revocation checking to the validator.
+func WithRevocationChecker(rc verify.RevocationChecker) ValidatorOption {
+	return func(v *Validator) { v.revocationChecker = rc }
 }
 
 // NewValidator creates a new Validator.
-// The caRoots pool is used to verify the developer certificate chain.
-// The verifier is used for distributor (Vault Transit) signature verification.
-func NewValidator(verifier verify.SignatureVerifier, signingKey string, caRoots *x509.CertPool) *Validator {
-	return &Validator{
+func NewValidator(verifier verify.SignatureVerifier, signingKey string, caRoots *x509.CertPool, opts ...ValidatorOption) *Validator {
+	v := &Validator{
 		verifier:   verifier,
 		signingKey: signingKey,
 		caRoots:    caRoots,
 	}
+	for _, opt := range opts {
+		opt(v)
+	}
+	return v
 }
 
 // ValidateEnvelope verifies both the developer and distributor signatures.
 func (v *Validator) ValidateEnvelope(ctx context.Context, env *container.ContentEnvelope, distributorKeyName string) error {
 	// 1. Verify developer certificate chain against trusted CA roots
-	if v.caRoots != nil && len(env.DeveloperCertificate) > 0 {
+	if v.caRoots != nil && len(env.DeveloperCertificate) > 0 && len(env.DeveloperManifest) > 0 {
 		devCert, err := x509.ParseCertificate(env.DeveloperCertificate)
 		if err != nil {
 			return fmt.Errorf("parse developer certificate: %w", err)
@@ -52,9 +63,19 @@ func (v *Validator) ValidateEnvelope(ctx context.Context, env *container.Content
 			return fmt.Errorf("developer certificate chain invalid: %w", err)
 		}
 
-		// 2. Verify developer signature (ECDSA) over developer signable bytes
-		devSignable := env.DeveloperSignableBytes()
-		if err := verifyECDSA(devCert, devSignable, env.DeveloperSignature); err != nil {
+		// 2. Check certificate revocation (if checker configured)
+		if v.revocationChecker != nil {
+			revoked, err := v.revocationChecker.IsRevoked(ctx, devCert)
+			if err != nil {
+				return fmt.Errorf("revocation check failed: %w", err)
+			}
+			if revoked {
+				return fmt.Errorf("developer certificate has been revoked")
+			}
+		}
+
+		// 3. Verify developer signature (ECDSA) over developer manifest bytes
+		if err := verifyECDSA(devCert, env.DeveloperManifest, env.DeveloperSignature); err != nil {
 			return fmt.Errorf("developer signature invalid: %w", err)
 		}
 	}
@@ -104,12 +125,12 @@ func (v *Validator) ValidateRenewalChain(ctx context.Context, license *container
 			return validCount, fmt.Errorf("parse renewal %d: %w", i, err)
 		}
 
-		if rt.ParentRef != expectedParent {
-			return validCount, fmt.Errorf("renewal %d: parent_ref %s does not match expected %s", i, rt.ParentRef, expectedParent)
+		if !bytes.Equal(rt.ParentRef, expectedParent) {
+			return validCount, fmt.Errorf("renewal %d: parent_ref %x does not match expected %x", i, rt.ParentRef, expectedParent)
 		}
 
-		if rt.ContentID != license.ContentID {
-			return validCount, fmt.Errorf("renewal %d: content_id %s does not match license content_id %s", i, rt.ContentID, license.ContentID)
+		if !bytes.Equal(rt.ContentID, license.ContentID) {
+			return validCount, fmt.Errorf("renewal %d: content_id %x does not match license content_id %x", i, rt.ContentID, license.ContentID)
 		}
 
 		expectedParent = rt.RenewalID
@@ -143,8 +164,8 @@ func (v *Validator) ValidateContainer(ctx context.Context, c *container.Containe
 		return result, err
 	}
 
-	if licenseToken.ContentID != c.Envelope.ContentID {
-		err := fmt.Errorf("license content_id %s does not match envelope content_id %s", licenseToken.ContentID, c.Envelope.ContentID)
+	if !bytes.Equal(licenseToken.ContentID, c.Envelope.ContentID) {
+		err := fmt.Errorf("license content_id %x does not match envelope content_id %x", licenseToken.ContentID, c.Envelope.ContentID)
 		result.Error = err
 		return result, err
 	}
@@ -166,28 +187,15 @@ func (v *Validator) ValidateContainer(ctx context.Context, c *container.Containe
 	return result, nil
 }
 
-// verifyECDSA verifies an ECDSA signature (ASN.1 DER encoded) against data
+// verifyECDSA verifies an ECDSA ASN.1 DER signature against data
 // using the public key from an X.509 certificate.
 func verifyECDSA(cert *x509.Certificate, data, signature []byte) error {
 	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return fmt.Errorf("developer certificate does not contain an ECDSA public key")
 	}
-
-	// Parse ASN.1 DER signature
-	var r, s big.Int
-	// Try ASN.1 first — standard ECDSA signature format
 	if !ecdsa.VerifyASN1(pubKey, data, signature) {
-		// Fallback: try raw r||s concatenation
-		halfLen := len(signature) / 2
-		if halfLen == 0 {
-			return fmt.Errorf("signature verification failed")
-		}
-		r.SetBytes(signature[:halfLen])
-		s.SetBytes(signature[halfLen:])
-		if !ecdsa.Verify(pubKey, data, &r, &s) {
-			return fmt.Errorf("signature verification failed")
-		}
+		return fmt.Errorf("signature verification failed")
 	}
 	return nil
 }

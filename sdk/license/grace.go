@@ -49,8 +49,8 @@ func (et *EffectiveTerms) GraceDeadline() time.Time {
 // the effective expiration and grace period.
 func EvaluateTerms(license *container.LicenseToken, renewals container.RenewalChain) (*EffectiveTerms, error) {
 	terms := &EffectiveTerms{
-		ExpiresAt:          license.ExpiresAt,
-		GracePeriodSeconds: license.GracePeriodSeconds,
+		ExpiresAt:          license.ExpiresAt(),
+		GracePeriodSeconds: int(license.GracePeriodSeconds),
 	}
 
 	for _, sr := range renewals {
@@ -59,9 +59,9 @@ func EvaluateTerms(license *container.LicenseToken, renewals container.RenewalCh
 			return nil, err
 		}
 
-		terms.ExpiresAt = rt.NewExpiresAt
-		if rt.NewGracePeriodSeconds != nil {
-			terms.GracePeriodSeconds = *rt.NewGracePeriodSeconds
+		terms.ExpiresAt = rt.NewExpiresAt()
+		if rt.NewGracePeriodSeconds != 0 {
+			terms.GracePeriodSeconds = int(rt.NewGracePeriodSeconds)
 		}
 		terms.RenewalCount++
 	}

@@ -54,23 +54,27 @@ func buildTestContainer(t *testing.T, mock *verify.Mock, plaintext []byte, expir
 	}
 	devCertDER, _ := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
 
+	// Developer manifest bytes (what the developer signs)
+	developerManifest := []byte("test-developer-manifest")
+
 	env := container.ContentEnvelope{
 		FormatVersion:          container.FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		ContentType:            container.ContentTypeAppDefinition,
 		HashAlgo:               container.HashAlgoSHA256,
-		ContentHash:            contentHash,
+		ContentHash:            contentHash[:],
 		WrappedDEK:             []byte(wrappedDEK),
 		EncryptAlgo:            container.EncryptionAlgoAES256GCM,
 		NonceLen:               uint8(len(nonce)),
 		Nonce:                  nonce,
 		DeveloperCertificate:   devCertDER,
+		DeveloperManifest:      developerManifest,
 		DistributorCertificate: []byte("dist-cert"),
 		Payload:                ciphertext,
 	}
 
-	// Developer sign
-	devSig, err := ecdsa.SignASN1(rand.Reader, devKey, env.DeveloperSignableBytes())
+	// Developer sign the manifest
+	devSig, err := ecdsa.SignASN1(rand.Reader, devKey, developerManifest)
 	require.NoError(t, err)
 	env.DeveloperSignature = devSig
 
@@ -80,12 +84,13 @@ func buildTestContainer(t *testing.T, mock *verify.Mock, plaintext []byte, expir
 	env.DistributorSignature = []byte(distSig)
 
 	// License
+	licID := uuid.New()
 	licenseToken := &container.LicenseToken{
-		LicenseID:          uuid.New(),
-		ContentID:          contentID,
-		IssuedAt:           time.Now().UTC(),
-		ExpiresAt:          expiresAt,
-		GracePeriodSeconds: int(gracePeriod.Seconds()),
+		LicenseID:          licID[:],
+		ContentID:          contentID[:],
+		IssuedAtUnix:       time.Now().UTC().Unix(),
+		ExpiresAtUnix:      expiresAt.Unix(),
+		GracePeriodSeconds: int32(gracePeriod.Seconds()),
 		Subject:            "test-customer",
 		RenewalEndpoint:    "https://example.com/renew",
 		SigningKeyID:       "ironclad-sign",
@@ -123,8 +128,8 @@ func writeContainerToFile(t *testing.T, c *container.Container) string {
 	dataStart := container.FileHeaderSize + indexSize
 
 	headerBytes, _ := header.MarshalBinary()
-	idx1 := container.SectionIndexEntry{Type: container.SectionEnvelope, Offset: uint32(dataStart), Length: uint64(len(envData))}
-	idx2 := container.SectionIndexEntry{Type: container.SectionLicense, Offset: uint32(dataStart + len(envData)), Length: uint64(len(licData))}
+	idx1 := container.SectionIndexEntry{Type: container.SectionEnvelope, Offset: uint64(dataStart), Length: uint64(len(envData))}
+	idx2 := container.SectionIndexEntry{Type: container.SectionLicense, Offset: uint64(dataStart + len(envData)), Length: uint64(len(licData))}
 	idx1Bytes, _ := idx1.MarshalBinary()
 	idx2Bytes, _ := idx2.MarshalBinary()
 

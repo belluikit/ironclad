@@ -26,10 +26,10 @@ var (
 
 func testLicenseToken() *container.LicenseToken {
 	return &container.LicenseToken{
-		LicenseID:          licenseID,
-		ContentID:          contentID,
-		IssuedAt:           time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC),
-		ExpiresAt:          time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC),
+		LicenseID:          licenseID[:],
+		ContentID:          contentID[:],
+		IssuedAtUnix:       time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC).Unix(),
+		ExpiresAtUnix:      time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC).Unix(),
 		GracePeriodSeconds: 259200,
 		Subject:            "test-customer",
 		Entitlements:       []string{"pro"},
@@ -49,14 +49,14 @@ func signedLicense(t *testing.T, mock *verify.Mock) *container.SignedLicense {
 	return sl
 }
 
-func signedRenewal(t *testing.T, mock *verify.Mock, parentRef uuid.UUID, expiresAt time.Time, grace *int) *container.SignedRenewal {
+func signedRenewal(t *testing.T, mock *verify.Mock, parentRef uuid.UUID, expiresAt time.Time, grace int32) *container.SignedRenewal {
 	t.Helper()
 	rt := &container.RenewalToken{
-		RenewalID:             renewalID,
-		ParentRef:             parentRef,
-		ContentID:             contentID,
-		IssuedAt:              time.Date(2026, 7, 8, 0, 0, 0, 0, time.UTC),
-		NewExpiresAt:          expiresAt,
+		RenewalID:             renewalID[:],
+		ParentRef:             parentRef[:],
+		ContentID:             contentID[:],
+		IssuedAtUnix:          time.Date(2026, 7, 8, 0, 0, 0, 0, time.UTC).Unix(),
+		NewExpiresAtUnix:      expiresAt.Unix(),
 		NewGracePeriodSeconds: grace,
 		SigningKeyID:          "ironclad-sign",
 	}
@@ -72,16 +72,15 @@ func TestEvaluateTermsNoRenewals(t *testing.T) {
 	token := testLicenseToken()
 	terms, err := EvaluateTerms(token, nil)
 	require.NoError(t, err)
-	assert.Equal(t, token.ExpiresAt, terms.ExpiresAt)
-	assert.Equal(t, token.GracePeriodSeconds, terms.GracePeriodSeconds)
+	assert.Equal(t, token.ExpiresAt(), terms.ExpiresAt)
+	assert.Equal(t, int(token.GracePeriodSeconds), terms.GracePeriodSeconds)
 	assert.Equal(t, 0, terms.RenewalCount)
 }
 
 func TestEvaluateTermsWithRenewal(t *testing.T) {
 	mock := verify.NewMock("ironclad-sign")
 	token := testLicenseToken()
-	newGrace := 172800
-	sr := signedRenewal(t, mock, licenseID, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), &newGrace)
+	sr := signedRenewal(t, mock, licenseID, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), 172800)
 
 	terms, err := EvaluateTerms(token, container.RenewalChain{*sr})
 	require.NoError(t, err)
@@ -111,7 +110,7 @@ func TestValidateContainerSuccess(t *testing.T) {
 
 	env := container.ContentEnvelope{
 		FormatVersion:          container.FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		ContentType:            container.ContentTypeDataFile,
 		HashAlgo:               container.HashAlgoSHA256,
 		WrappedDEK:             []byte("wrapped"),
@@ -148,7 +147,7 @@ func TestValidateRenewalChainBadParentRef(t *testing.T) {
 	mock := verify.NewMock("ironclad-sign")
 	token := testLicenseToken()
 	wrongParent := uuid.MustParse("99999999-9999-9999-9999-999999999999")
-	sr := signedRenewal(t, mock, wrongParent, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), nil)
+	sr := signedRenewal(t, mock, wrongParent, time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC), 0)
 
 	v := NewValidator(mock, "ironclad-sign", nil)
 	_, err := v.ValidateRenewalChain(ctx, token, container.RenewalChain{*sr})
@@ -183,23 +182,27 @@ func TestValidateEnvelopeDualSignature(t *testing.T) {
 	devCertDER, err := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
 	require.NoError(t, err)
 
+	// Build developer manifest bytes (this is what the developer signs)
+	developerManifest := []byte(`test-manifest-bytes`)
+
 	env := container.ContentEnvelope{
 		FormatVersion:          container.FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		ContentType:            container.ContentTypeSharedLibrary,
 		HashAlgo:               container.HashAlgoSHA256,
-		ContentHash:            [32]byte{1, 2, 3},
+		ContentHash:            []byte{1, 2, 3},
 		WrappedDEK:             []byte("wrapped"),
 		EncryptAlgo:            container.EncryptionAlgoAES256GCM,
 		NonceLen:               12,
 		Nonce:                  make([]byte, 12),
 		DeveloperCertificate:   devCertDER,
+		DeveloperManifest:      developerManifest,
 		DistributorCertificate: []byte("dist-cert"),
 		Payload:                []byte("payload"),
 	}
 
-	// Developer signs
-	devSig, err := ecdsa.SignASN1(rand.Reader, devKey, env.DeveloperSignableBytes())
+	// Developer signs the manifest bytes
+	devSig, err := ecdsa.SignASN1(rand.Reader, devKey, developerManifest)
 	require.NoError(t, err)
 	env.DeveloperSignature = devSig
 
@@ -237,10 +240,11 @@ func TestValidateEnvelopeBadDeveloperSig(t *testing.T) {
 
 	env := container.ContentEnvelope{
 		FormatVersion:          container.FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		ContentType:            container.ContentTypeDataFile,
 		HashAlgo:               container.HashAlgoSHA256,
 		DeveloperCertificate:   devCertDER,
+		DeveloperManifest:      []byte("some-manifest"),
 		DeveloperSignature:     []byte("bad-signature"),
 		DistributorCertificate: []byte("dist-cert"),
 	}
@@ -261,7 +265,7 @@ func TestValidateEnvelopeBadDistributorSig(t *testing.T) {
 
 	env := container.ContentEnvelope{
 		FormatVersion:          container.FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		DistributorCertificate: []byte("dist-cert"),
 		DistributorSignature:   []byte("bad-distributor-sig"),
 	}
@@ -272,3 +276,4 @@ func TestValidateEnvelopeBadDistributorSig(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "distributor")
 }
+

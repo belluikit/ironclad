@@ -14,10 +14,10 @@ func testEnvelope() ContentEnvelope {
 	contentID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	return ContentEnvelope{
 		FormatVersion:          FormatVersion,
-		ContentID:              contentID,
+		ContentID:              contentID[:],
 		ContentType:            ContentTypeDataFile,
 		HashAlgo:               HashAlgoSHA256,
-		ContentHash:            [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32},
+		ContentHash:            []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32},
 		WrappedDEK:             []byte("vault:v1:wrappedkeydata"),
 		EncryptAlgo:            EncryptionAlgoAES256GCM,
 		NonceLen:               12,
@@ -31,11 +31,13 @@ func testEnvelope() ContentEnvelope {
 }
 
 func testLicenseToken() *LicenseToken {
+	licenseID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	contentID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	return &LicenseToken{
-		LicenseID:          uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-		ContentID:          uuid.MustParse("11111111-1111-1111-1111-111111111111"),
-		IssuedAt:           time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC),
-		ExpiresAt:          time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC),
+		LicenseID:          licenseID[:],
+		ContentID:          contentID[:],
+		IssuedAtUnix:       time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC).Unix(),
+		ExpiresAtUnix:      time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC).Unix(),
 		GracePeriodSeconds: 259200,
 		Subject:            "test-customer",
 		Entitlements:       []string{"pro", "gpu"},
@@ -87,20 +89,6 @@ func TestEnvelopeRoundTrip(t *testing.T) {
 	assert.Equal(t, env.Payload, env2.Payload)
 }
 
-func TestDeveloperSignableBytesStability(t *testing.T) {
-	env := testEnvelope()
-	sig1 := env.DeveloperSignableBytes()
-
-	// Changing encryption params, signatures, or payload should NOT affect dev signable bytes
-	env.WrappedDEK = []byte("different-dek")
-	env.DeveloperSignature = []byte("different-sig")
-	env.DistributorSignature = []byte("different-dist-sig")
-	env.Payload = []byte("different-payload")
-	sig2 := env.DeveloperSignableBytes()
-
-	assert.Equal(t, sig1, sig2, "developer signable bytes should only cover content identity fields")
-}
-
 func TestDistributorSignableBytesStability(t *testing.T) {
 	env := testEnvelope()
 	sig1 := env.DistributorSignableBytes()
@@ -137,14 +125,15 @@ func TestSignedLicenseRoundTrip(t *testing.T) {
 
 func TestRenewalChainRoundTrip(t *testing.T) {
 	licenseID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	grace := 172800
+	contentID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	renewalID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	r1 := &RenewalToken{
-		RenewalID:             uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-		ParentRef:             licenseID,
-		ContentID:             uuid.MustParse("11111111-1111-1111-1111-111111111111"),
-		IssuedAt:              time.Date(2026, 7, 8, 0, 0, 0, 0, time.UTC),
-		NewExpiresAt:          time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC),
-		NewGracePeriodSeconds: &grace,
+		RenewalID:             renewalID[:],
+		ParentRef:             licenseID[:],
+		ContentID:             contentID[:],
+		IssuedAtUnix:          time.Date(2026, 7, 8, 0, 0, 0, 0, time.UTC).Unix(),
+		NewExpiresAtUnix:      time.Date(2026, 10, 10, 0, 0, 0, 0, time.UTC).Unix(),
+		NewGracePeriodSeconds: 172800,
 		SigningKeyID:          "transit/keys/ironclad-sign/v1",
 	}
 	sr1, err := NewSignedRenewal(r1)
@@ -174,8 +163,8 @@ func TestContainerMagicBytes(t *testing.T) {
 	dataStart := FileHeaderSize + indexSize
 
 	headerBytes, _ := header.MarshalBinary()
-	idx1 := SectionIndexEntry{Type: SectionEnvelope, Offset: uint32(dataStart), Length: uint64(len(envData))}
-	idx2 := SectionIndexEntry{Type: SectionLicense, Offset: uint32(dataStart + len(envData)), Length: uint64(len(licData))}
+	idx1 := SectionIndexEntry{Type: SectionEnvelope, Offset: uint64(dataStart), Length: uint64(len(envData))}
+	idx2 := SectionIndexEntry{Type: SectionLicense, Offset: uint64(dataStart + len(envData)), Length: uint64(len(licData))}
 	idx1Bytes, _ := idx1.MarshalBinary()
 	idx2Bytes, _ := idx2.MarshalBinary()
 

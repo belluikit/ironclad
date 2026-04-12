@@ -44,13 +44,13 @@ func WriteContainer(w io.Writer, c *sdkcontainer.Container) error {
 
 	// Build section index
 	entries := []sdkcontainer.SectionIndexEntry{
-		{Type: sdkcontainer.SectionEnvelope, Offset: uint32(envelopeOffset), Length: uint64(len(envelopeData))},
-		{Type: sdkcontainer.SectionLicense, Offset: uint32(licenseOffset), Length: uint64(len(licenseData))},
+		{Type: sdkcontainer.SectionEnvelope, Offset: uint64(envelopeOffset), Length: uint64(len(envelopeData))},
+		{Type: sdkcontainer.SectionLicense, Offset: uint64(licenseOffset), Length: uint64(len(licenseData))},
 	}
 	if sectionCount == 3 {
 		entries = append(entries, sdkcontainer.SectionIndexEntry{
 			Type:   sdkcontainer.SectionRenewal,
-			Offset: uint32(renewalOffset),
+			Offset: uint64(renewalOffset),
 			Length: uint64(len(renewalData)),
 		})
 	}
@@ -135,9 +135,9 @@ func AppendRenewal(path string, renewal sdkcontainer.SignedRenewal) error {
 	renewalOffset := licenseOffset + len(licenseData)
 
 	entries := []sdkcontainer.SectionIndexEntry{
-		{Type: sdkcontainer.SectionEnvelope, Offset: uint32(envelopeOffset), Length: uint64(len(envelopeData))},
-		{Type: sdkcontainer.SectionLicense, Offset: uint32(licenseOffset), Length: uint64(len(licenseData))},
-		{Type: sdkcontainer.SectionRenewal, Offset: uint32(renewalOffset), Length: uint64(len(renewalData))},
+		{Type: sdkcontainer.SectionEnvelope, Offset: uint64(envelopeOffset), Length: uint64(len(envelopeData))},
+		{Type: sdkcontainer.SectionLicense, Offset: uint64(licenseOffset), Length: uint64(len(licenseData))},
+		{Type: sdkcontainer.SectionRenewal, Offset: uint64(renewalOffset), Length: uint64(len(renewalData))},
 	}
 
 	// Seek to beginning and rewrite

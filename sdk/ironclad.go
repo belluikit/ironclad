@@ -11,6 +11,7 @@
 package sdk
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
@@ -83,7 +84,7 @@ func Decrypt(ctx context.Context, c *container.Container, unwrapper verify.DEKUn
 
 	// Verify content hash
 	hash := sha256.Sum256(plaintext)
-	if hash != c.Envelope.ContentHash {
+	if !bytes.Equal(hash[:], c.Envelope.ContentHash) {
 		tcrypto.Zero(plaintext)
 		return nil, fmt.Errorf("content hash mismatch: payload has been tampered with")
 	}
@@ -100,7 +101,7 @@ func DecryptWithDEK(c *container.Container, dek []byte) ([]byte, error) {
 
 	// Verify content hash
 	hash := sha256.Sum256(plaintext)
-	if hash != c.Envelope.ContentHash {
+	if !bytes.Equal(hash[:], c.Envelope.ContentHash) {
 		tcrypto.Zero(plaintext)
 		return nil, fmt.Errorf("content hash mismatch: payload has been tampered with")
 	}

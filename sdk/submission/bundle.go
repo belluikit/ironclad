@@ -1,110 +1,52 @@
 package submission
 
 import (
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/trendvidia/protowire/encoding/pb"
 )
 
 // Manifest holds metadata about the submitted artifact.
-// It is serialized as JSON and signed by the developer.
 type Manifest struct {
-	ContentHash string `json:"content_hash"` // "sha256:<hex>"
-	ContentType string `json:"content_type"` // "data-file", "app-definition", "shared-library"
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Description string `json:"description,omitempty"`
+	ContentHash string `protowire:"1"` // "sha256:<hex>"
+	ContentType string `protowire:"2"`
+	Name        string `protowire:"3"`
+	Version     string `protowire:"4"`
+	Description string `protowire:"5"`
 }
 
-// SignedManifest pairs the raw JSON manifest bytes with the developer's
-// certificate and signature.
+// SignedManifest pairs the protowire-encoded manifest bytes with the
+// developer's certificate and signature.
 type SignedManifest struct {
-	ManifestBytes        []byte // raw JSON (signed exactly as-is)
-	DeveloperCertificate []byte // DER-encoded X.509 certificate
-	DeveloperSignature   []byte // ECDSA signature over ManifestBytes
+	ManifestBytes        []byte `protowire:"1"`
+	DeveloperCertificate []byte `protowire:"2"`
+	DeveloperSignature   []byte `protowire:"3"`
 }
 
-// Manifest parses the JSON manifest bytes.
+// Manifest parses the manifest bytes.
 func (sm *SignedManifest) Manifest() (*Manifest, error) {
 	var m Manifest
-	if err := json.Unmarshal(sm.ManifestBytes, &m); err != nil {
+	if err := pb.Unmarshal(sm.ManifestBytes, &m); err != nil {
 		return nil, fmt.Errorf("parse manifest: %w", err)
 	}
 	return &m, nil
 }
 
-// MarshalBinary serializes the signed manifest:
-//
-//	ManifestLen(4) + Manifest + CertLen(2) + Cert + SigLen(2) + Sig
+// MarshalBinary serializes using protowire.
 func (sm *SignedManifest) MarshalBinary() ([]byte, error) {
-	size := 4 + len(sm.ManifestBytes) + 2 + len(sm.DeveloperCertificate) + 2 + len(sm.DeveloperSignature)
-	buf := make([]byte, size)
-	offset := 0
-
-	binary.BigEndian.PutUint32(buf[offset:], uint32(len(sm.ManifestBytes)))
-	offset += 4
-	copy(buf[offset:], sm.ManifestBytes)
-	offset += len(sm.ManifestBytes)
-
-	binary.BigEndian.PutUint16(buf[offset:], uint16(len(sm.DeveloperCertificate)))
-	offset += 2
-	copy(buf[offset:], sm.DeveloperCertificate)
-	offset += len(sm.DeveloperCertificate)
-
-	binary.BigEndian.PutUint16(buf[offset:], uint16(len(sm.DeveloperSignature)))
-	offset += 2
-	copy(buf[offset:], sm.DeveloperSignature)
-
-	return buf, nil
+	return pb.Marshal(sm)
 }
 
-// UnmarshalBinary deserializes a signed manifest.
+// UnmarshalBinary deserializes from protowire.
 func (sm *SignedManifest) UnmarshalBinary(data []byte) error {
-	if len(data) < 8 {
-		return fmt.Errorf("%w: manifest section too short", ErrTruncated)
-	}
-	offset := 0
-
-	manifestLen := int(binary.BigEndian.Uint32(data[offset:]))
-	offset += 4
-	if offset+manifestLen > len(data) {
-		return fmt.Errorf("%w: manifest truncated", ErrTruncated)
-	}
-	sm.ManifestBytes = make([]byte, manifestLen)
-	copy(sm.ManifestBytes, data[offset:offset+manifestLen])
-	offset += manifestLen
-
-	if offset+2 > len(data) {
-		return fmt.Errorf("%w: certificate length truncated", ErrTruncated)
-	}
-	certLen := int(binary.BigEndian.Uint16(data[offset:]))
-	offset += 2
-	if offset+certLen > len(data) {
-		return fmt.Errorf("%w: certificate truncated", ErrTruncated)
-	}
-	sm.DeveloperCertificate = make([]byte, certLen)
-	copy(sm.DeveloperCertificate, data[offset:offset+certLen])
-	offset += certLen
-
-	if offset+2 > len(data) {
-		return fmt.Errorf("%w: signature length truncated", ErrTruncated)
-	}
-	sigLen := int(binary.BigEndian.Uint16(data[offset:]))
-	offset += 2
-	if offset+sigLen > len(data) {
-		return fmt.Errorf("%w: signature truncated", ErrTruncated)
-	}
-	sm.DeveloperSignature = make([]byte, sigLen)
-	copy(sm.DeveloperSignature, data[offset:offset+sigLen])
-
-	return nil
+	return pb.Unmarshal(data, sm)
 }
 
 // Bundle represents a complete submission bundle (.tcsb file).
 type Bundle struct {
 	SignedManifest SignedManifest
-	Content        []byte // raw artifact bytes (unencrypted)
+	Content        []byte
 }
 
 // ReadBundle parses a submission bundle from the given ReadSeeker.
@@ -114,7 +56,6 @@ func ReadBundle(r io.ReadSeeker) (*Bundle, error) {
 		return nil, fmt.Errorf("read header: %w", err)
 	}
 
-	// Read section index
 	entries := make([]SectionIndexEntry, header.SectionCount)
 	buf := make([]byte, SectionIndexEntrySize)
 	for i := uint32(0); i < header.SectionCount; i++ {
@@ -170,8 +111,8 @@ func WriteBundle(w io.Writer, b *Bundle) error {
 	contentOffset := manifestOffset + len(manifestData)
 
 	entries := []SectionIndexEntry{
-		{Type: SectionManifest, Offset: uint32(manifestOffset), Length: uint64(len(manifestData))},
-		{Type: SectionContent, Offset: uint32(contentOffset), Length: uint64(len(b.Content))},
+		{Type: SectionManifest, Offset: uint64(manifestOffset), Length: uint64(len(manifestData))},
+		{Type: SectionContent, Offset: uint64(contentOffset), Length: uint64(len(b.Content))},
 	}
 
 	headerBytes, _ := header.MarshalBinary()

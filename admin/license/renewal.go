@@ -3,27 +3,26 @@ package license
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
 	"github.com/trendvidia/ironclad/sdk/verify"
+	"github.com/trendvidia/protowire/encoding/pb"
 )
 
 // RenewalRequest is sent to the renewal endpoint.
 type RenewalRequest struct {
-	LicenseID       uuid.UUID  `json:"license_id"`
-	LatestRenewalID *uuid.UUID `json:"latest_renewal_id,omitempty"`
-	ContentID       uuid.UUID  `json:"content_id"`
+	LicenseID       []byte `protowire:"1"`
+	LatestRenewalID []byte `protowire:"2"`
+	ContentID       []byte `protowire:"3"`
 }
 
 // RenewalResponse is received from the renewal endpoint.
 type RenewalResponse struct {
-	RenewalToken sdkcontainer.SignedRenewal `json:"renewal_token"`
+	RenewalToken sdkcontainer.SignedRenewal `protowire:"1"`
 }
 
 // RenewalClient handles the online license renewal protocol.
@@ -59,10 +58,10 @@ func (rc *RenewalClient) Renew(ctx context.Context, c *sdkcontainer.Container) (
 		if err != nil {
 			return nil, fmt.Errorf("parse last renewal: %w", err)
 		}
-		req.LatestRenewalID = &lastRenewal.RenewalID
+		req.LatestRenewalID = lastRenewal.RenewalID
 	}
 
-	body, err := json.Marshal(req)
+	body, err := pb.Marshal(&req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal renewal request: %w", err)
 	}
@@ -71,7 +70,7 @@ func (rc *RenewalClient) Renew(ctx context.Context, c *sdkcontainer.Container) (
 	if err != nil {
 		return nil, fmt.Errorf("create renewal request: %w", err)
 	}
-	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Content-Type", "application/x-protobuf")
 
 	resp, err := rc.httpClient.Do(httpReq)
 	if err != nil {
@@ -84,8 +83,13 @@ func (rc *RenewalClient) Renew(ctx context.Context, c *sdkcontainer.Container) (
 		return nil, fmt.Errorf("renewal refused (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read renewal response: %w", err)
+	}
+
 	var renewalResp RenewalResponse
-	if err := json.NewDecoder(resp.Body).Decode(&renewalResp); err != nil {
+	if err := pb.Unmarshal(respBody, &renewalResp); err != nil {
 		return nil, fmt.Errorf("parse renewal response: %w", err)
 	}
 
@@ -101,7 +105,7 @@ func (rc *RenewalClient) Renew(ctx context.Context, c *sdkcontainer.Container) (
 	if err != nil {
 		return nil, fmt.Errorf("parse renewal token: %w", err)
 	}
-	if rt.ContentID != licenseToken.ContentID {
+	if !bytes.Equal(rt.ContentID, licenseToken.ContentID) {
 		return nil, fmt.Errorf("renewal token content_id mismatch")
 	}
 
