@@ -104,7 +104,7 @@ func newPackCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&output, "output", "o", "", "Output file path (required)")
-	cmd.Flags().StringVar(&contentType, "content-type", "data-file", "Content type (data-file, app-definition)")
+	cmd.Flags().StringVar(&contentType, "content-type", "data-file", "Content type (data-file, app-definition, shared-library, executable)")
 	cmd.Flags().StringVar(&contentID, "content-id", "", "Content ID (auto-generated if omitted)")
 	cmd.Flags().StringVar(&transitKey, "transit-key", "ironclad-dek", "Vault Transit key for DEK wrapping")
 	cmd.Flags().StringVar(&signingKey, "signing-key", "ironclad-sign", "Vault Transit key for signing")

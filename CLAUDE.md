@@ -6,7 +6,7 @@ Secure file packaging system with AES-256-GCM encryption, dual-signature verific
 
 Three Go modules in one repo, each for a different audience:
 
-- **`sdk/`** (`github.com/trendvidia/ironclad/sdk`) — Consumer apps. Open, validate, decrypt containers. Secure plugin loader. No Vault dependency.
+- **`sdk/`** (`github.com/trendvidia/ironclad/sdk`) — Consumer apps. Open, validate, decrypt containers. Secure plugin loader and executable loader. No Vault dependency.
 - **`admin/`** (`github.com/trendvidia/ironclad/admin`) — Platform tooling. Create containers, sign, issue licenses, CLI. Depends on Vault.
 - **`devsdk/`** (`github.com/trendvidia/ironclad/devsdk`) — Third-party developers. Sign artifacts, create submission bundles. No Vault dependency.
 
@@ -51,6 +51,23 @@ Format version 2. Binary with magic bytes `0x89 T S B`. Contains raw artifact + 
 
 For large files, `ChunkedEncryption: true` enables per-chunk AES-256-GCM encryption. Each chunk has a unique nonce derived from `baseNonce XOR chunkCounter`. Chunk format: `[uint32 ciphertext_length][ciphertext+tag]`, sentinel `[uint32 0]`.
 
+## Secure Executable Loader
+
+`sdk/loader/executable.go` provides `SecureExecutable` for loading and running encrypted executables from `.tcn` containers. Uses a **decrypt-per-run** model to minimize disk exposure:
+
+1. `OpenExecutable()` validates signatures + license, caches only the 32-byte DEK
+2. Each `Run()`/`Command()` call decrypts the payload, writes it to a secure platform-specific location, starts the subprocess, and immediately removes the file
+3. `Close()` zeros the cached DEK
+
+Content type `executable` (`0x04`) is enforced — `OpenExecutable` rejects non-executable containers.
+
+Platform-specific execution:
+- **Linux**: memfd (sealed, never touches real filesystem)
+- **macOS**: temp file with ad-hoc codesign, unlinked after process start
+- **Windows**: temp `.exe` file, removed after process exits
+
+`Command()` returns `(*exec.Cmd, func(), error)` — the cleanup function must be called after the process completes.
+
 ## Certificate Revocation
 
 `sdk/verify/revocation.go` provides `RevocationChecker` interface with CRL-based implementation (`CRLChecker`). Integrated into the validator via `WithRevocationChecker()` option. CRLs are fetched from certificate distribution points and cached with configurable TTL.
@@ -63,6 +80,7 @@ For large files, `ChunkedEncryption: true` enables per-chunk AES-256-GCM encrypt
 ## CLI
 
 ```bash
+ironclad pack <file> -o <output.tcn> --content-type executable --license-subject "customer" --renewal-endpoint "https://..."
 ironclad pack <file> -o <output.tcn> --license-subject "customer" --renewal-endpoint "https://..."
 ironclad inspect <file.tcn>
 ironclad verify <file.tcn>

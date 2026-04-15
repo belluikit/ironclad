@@ -31,6 +31,7 @@ const (
 	ContentTypeDataFile      uint16 = 0x01
 	ContentTypeAppDefinition uint16 = 0x02
 	ContentTypeSharedLibrary uint16 = 0x03
+	ContentTypeExecutable    uint16 = 0x04
 )
 
 // Hash algorithms.
@@ -168,6 +169,8 @@ func ContentTypeName(ct uint16) string {
 		return "app-definition"
 	case ContentTypeSharedLibrary:
 		return "shared-library"
+	case ContentTypeExecutable:
+		return "executable"
 	default:
 		return fmt.Sprintf("unknown(0x%04x)", ct)
 	}
@@ -182,6 +185,8 @@ func ParseContentType(s string) (uint16, error) {
 		return ContentTypeAppDefinition, nil
 	case "shared-library":
 		return ContentTypeSharedLibrary, nil
+	case "executable":
+		return ContentTypeExecutable, nil
 	default:
 		return 0, fmt.Errorf("unknown content type: %q", s)
 	}

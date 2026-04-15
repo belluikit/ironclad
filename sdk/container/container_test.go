@@ -198,3 +198,11 @@ func TestContentTypeSharedLibrary(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, ContentTypeSharedLibrary, ct)
 }
+
+func TestContentTypeExecutable(t *testing.T) {
+	assert.Equal(t, "executable", ContentTypeName(ContentTypeExecutable))
+
+	ct, err := ParseContentType("executable")
+	require.NoError(t, err)
+	assert.Equal(t, ContentTypeExecutable, ct)
+}
