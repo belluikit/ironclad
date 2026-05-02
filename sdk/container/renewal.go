@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 // RenewalToken extends a license expiration without modifying the envelope.

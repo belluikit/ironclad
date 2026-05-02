@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 // Feature maps a named feature to the plugin symbols it gates.

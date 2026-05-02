@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/google/uuid"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 // ContentEnvelope holds the immutable content section of a container.

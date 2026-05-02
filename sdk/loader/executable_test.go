@@ -11,7 +11,7 @@ import (
 	"github.com/trendvidia/ironclad/sdk/container"
 	"github.com/trendvidia/ironclad/sdk/submission"
 	"github.com/trendvidia/ironclad/sdk/verify"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 func TestOpenExecutableMissingOptions(t *testing.T) {

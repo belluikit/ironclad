@@ -10,7 +10,7 @@ import (
 
 	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
 	"github.com/trendvidia/ironclad/sdk/verify"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 // RenewalRequest is sent to the renewal endpoint.

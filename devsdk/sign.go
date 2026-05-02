@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/trendvidia/ironclad/sdk/submission"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 // GenerateKeyPair generates a new ECDSA P-256 private key.

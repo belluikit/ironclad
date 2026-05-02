@@ -40,7 +40,7 @@ import (
 	tcrypto "github.com/trendvidia/ironclad/sdk/crypto"
 	"github.com/trendvidia/ironclad/sdk/submission"
 	"github.com/trendvidia/ironclad/sdk/verify"
-	"github.com/trendvidia/protowire/encoding/pb"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 var (
