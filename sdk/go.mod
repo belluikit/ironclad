@@ -1,4 +1,4 @@
-module github.com/trendvidia/ironclad/sdk
+module github.com/belluikit/ironclad/sdk
 
 go 1.26.2
 

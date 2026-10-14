@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	admincontainer "github.com/belluikit/ironclad/admin/container"
+	adminlicense "github.com/belluikit/ironclad/admin/license"
+	"github.com/belluikit/ironclad/admin/vault"
+	sdk "github.com/belluikit/ironclad/sdk"
+	"github.com/belluikit/ironclad/sdk/license"
 	"github.com/spf13/cobra"
-	admincontainer "github.com/trendvidia/ironclad/admin/container"
-	adminlicense "github.com/trendvidia/ironclad/admin/license"
-	"github.com/trendvidia/ironclad/admin/vault"
-	sdk "github.com/trendvidia/ironclad/sdk"
-	"github.com/trendvidia/ironclad/sdk/license"
 )
 
 func newRenewCmd() *cobra.Command {

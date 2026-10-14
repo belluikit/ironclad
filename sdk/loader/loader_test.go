@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/submission"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/submission"
-	"github.com/trendvidia/ironclad/sdk/verify"
 	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
@@ -45,7 +45,7 @@ func TestFeatureGating(t *testing.T) {
 		p: nil, // no real plugin, just testing the gate
 		gatedSymbols: map[string]string{
 			"Render3DChart": "charts-3d",
-			"Configure3D":  "charts-3d",
+			"Configure3D":   "charts-3d",
 			"Render2DChart": "charts-2d",
 		},
 		entitlements: map[string]bool{
@@ -127,10 +127,10 @@ func TestBuildFeatureGate(t *testing.T) {
 
 	// Build a license with entitlements
 	licenseToken := &container.LicenseToken{
-		LicenseID:     []byte{1, 2, 3},
-		ContentID:     []byte{4, 5, 6},
-		Entitlements:  []string{"charts-3d"},
-		SigningKeyID:  "key",
+		LicenseID:    []byte{1, 2, 3},
+		ContentID:    []byte{4, 5, 6},
+		Entitlements: []string{"charts-3d"},
+		SigningKeyID: "key",
 	}
 	sl, err := container.NewSignedLicense(licenseToken)
 	require.NoError(t, err)

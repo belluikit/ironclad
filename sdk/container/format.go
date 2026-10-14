@@ -45,10 +45,10 @@ const (
 )
 
 var (
-	ErrInvalidMagic   = errors.New("invalid magic bytes")
-	ErrInvalidVersion = errors.New("unsupported format version")
-	ErrInvalidSection = errors.New("invalid section")
-	ErrTruncated      = errors.New("truncated container")
+	ErrInvalidMagic     = errors.New("invalid magic bytes")
+	ErrInvalidVersion   = errors.New("unsupported format version")
+	ErrInvalidSection   = errors.New("invalid section")
+	ErrTruncated        = errors.New("truncated container")
 	ErrDuplicateSection = errors.New("duplicate section type")
 )
 

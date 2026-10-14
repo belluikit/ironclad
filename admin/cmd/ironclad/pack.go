@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/belluikit/ironclad/admin/packaging"
+	"github.com/belluikit/ironclad/admin/vault"
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
-	"github.com/trendvidia/ironclad/admin/packaging"
-	"github.com/trendvidia/ironclad/admin/vault"
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
 )
 
 func newPackCmd() *cobra.Command {

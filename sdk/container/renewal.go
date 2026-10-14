@@ -19,7 +19,7 @@ type RenewalToken struct {
 	SigningKeyID          string `protowire:"7"`
 }
 
-func (rt *RenewalToken) IssuedAt() time.Time    { return time.Unix(rt.IssuedAtUnix, 0).UTC() }
+func (rt *RenewalToken) IssuedAt() time.Time     { return time.Unix(rt.IssuedAtUnix, 0).UTC() }
 func (rt *RenewalToken) NewExpiresAt() time.Time { return time.Unix(rt.NewExpiresAtUnix, 0).UTC() }
 
 func (rt *RenewalToken) RenewalUUID() uuid.UUID {

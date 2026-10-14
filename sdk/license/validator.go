@@ -7,8 +7,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/verify"
+	"github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/verify"
 )
 
 // ValidationResult holds the outcome of a full container validation.
@@ -23,10 +23,10 @@ type ValidationResult struct {
 
 // Validator validates container signatures and license state.
 type Validator struct {
-	verifier           verify.SignatureVerifier // for distributor sigs (Vault Transit)
-	signingKey         string                  // key name for license/renewal signatures
-	caRoots            *x509.CertPool          // trusted CA roots for developer cert verification
-	revocationChecker  verify.RevocationChecker // optional, checks cert revocation
+	verifier          verify.SignatureVerifier // for distributor sigs (Vault Transit)
+	signingKey        string                   // key name for license/renewal signatures
+	caRoots           *x509.CertPool           // trusted CA roots for developer cert verification
+	revocationChecker verify.RevocationChecker // optional, checks cert revocation
 }
 
 // ValidatorOption configures optional validator behavior.

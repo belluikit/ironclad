@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/verify"
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belluikit/ironclad/admin/vault"
+	sdk "github.com/belluikit/ironclad/sdk"
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/admin/vault"
-	sdk "github.com/trendvidia/ironclad/sdk"
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
 )
 
 func TestPackAndDecrypt(t *testing.T) {
@@ -22,18 +22,18 @@ func TestPackAndDecrypt(t *testing.T) {
 
 	var buf bytes.Buffer
 	c, err := p.Pack(ctx, bytes.NewReader(plaintext), &buf, PackConfig{
-		ContentType:     sdkcontainer.ContentTypeAppDefinition,
-		DEKKeyName:      "ironclad-dek",
-		SigningKeyName:  "ironclad-sign",
-		EnvelopeKeyName: "ironclad-sign",
+		ContentType:            sdkcontainer.ContentTypeAppDefinition,
+		DEKKeyName:             "ironclad-dek",
+		SigningKeyName:         "ironclad-sign",
+		EnvelopeKeyName:        "ironclad-sign",
 		DeveloperCertificate:   []byte("test-dev-cert"),
 		DeveloperSignature:     []byte("test-dev-sig"),
 		DistributorCertificate: []byte("test-dist-cert"),
-		Subject:         "test-customer",
-		ExpiresAt:       time.Now().UTC().Add(720 * time.Hour),
-		GracePeriod:     72 * time.Hour,
-		Entitlements:    []string{"pro"},
-		RenewalEndpoint: "https://license.example.com/renew",
+		Subject:                "test-customer",
+		ExpiresAt:              time.Now().UTC().Add(720 * time.Hour),
+		GracePeriod:            72 * time.Hour,
+		Entitlements:           []string{"pro"},
+		RenewalEndpoint:        "https://license.example.com/renew",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, sdkcontainer.ContentTypeAppDefinition, c.Envelope.ContentType)

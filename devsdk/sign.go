@@ -19,7 +19,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/trendvidia/ironclad/sdk/submission"
+	"github.com/belluikit/ironclad/sdk/submission"
 	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 

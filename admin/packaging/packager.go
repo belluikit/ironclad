@@ -6,10 +6,10 @@ import (
 	"io"
 	"time"
 
+	admincontainer "github.com/belluikit/ironclad/admin/container"
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
+	sdkcrypto "github.com/belluikit/ironclad/sdk/crypto"
 	"github.com/google/uuid"
-	admincontainer "github.com/trendvidia/ironclad/admin/container"
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
-	sdkcrypto "github.com/trendvidia/ironclad/sdk/crypto"
 )
 
 // Encryptor defines the encryption operations needed by the packaging module.

@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/belluikit/ironclad/admin/vault"
+	sdk "github.com/belluikit/ironclad/sdk"
+	"github.com/belluikit/ironclad/sdk/license"
 	"github.com/spf13/cobra"
-	sdk "github.com/trendvidia/ironclad/sdk"
-	"github.com/trendvidia/ironclad/sdk/license"
-	"github.com/trendvidia/ironclad/admin/vault"
 )
 
 func newVerifyCmd() *cobra.Command {

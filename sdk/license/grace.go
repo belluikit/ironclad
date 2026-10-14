@@ -3,7 +3,7 @@ package license
 import (
 	"time"
 
-	"github.com/trendvidia/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/container"
 )
 
 // Status represents the current state of a license.

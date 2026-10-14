@@ -19,10 +19,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/trendvidia/ironclad/sdk/container"
-	tcrypto "github.com/trendvidia/ironclad/sdk/crypto"
-	"github.com/trendvidia/ironclad/sdk/license"
-	"github.com/trendvidia/ironclad/sdk/verify"
+	"github.com/belluikit/ironclad/sdk/container"
+	tcrypto "github.com/belluikit/ironclad/sdk/crypto"
+	"github.com/belluikit/ironclad/sdk/license"
+	"github.com/belluikit/ironclad/sdk/verify"
 )
 
 // Open parses a container file from disk.

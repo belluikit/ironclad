@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belluikit/ironclad/sdk/container"
+	tcrypto "github.com/belluikit/ironclad/sdk/crypto"
+	"github.com/belluikit/ironclad/sdk/license"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/container"
-	tcrypto "github.com/trendvidia/ironclad/sdk/crypto"
-	"github.com/trendvidia/ironclad/sdk/license"
-	"github.com/trendvidia/ironclad/sdk/verify"
 )
 
 // buildTestContainer creates a fully signed + encrypted container for testing.

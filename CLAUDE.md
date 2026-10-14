@@ -6,9 +6,9 @@ Secure file packaging system with AES-256-GCM encryption, dual-signature verific
 
 Three Go modules in one repo, each for a different audience:
 
-- **`sdk/`** (`github.com/trendvidia/ironclad/sdk`) — Consumer apps. Open, validate, decrypt containers. Secure plugin loader and executable loader. No Vault dependency.
-- **`admin/`** (`github.com/trendvidia/ironclad/admin`) — Platform tooling. Create containers, sign, issue licenses, CLI. Depends on Vault.
-- **`devsdk/`** (`github.com/trendvidia/ironclad/devsdk`) — Third-party developers. Sign artifacts, create submission bundles. No Vault dependency.
+- **`sdk/`** (`github.com/belluikit/ironclad/sdk`) — Consumer apps. Open, validate, decrypt containers. Secure plugin loader and executable loader. No Vault dependency.
+- **`admin/`** (`github.com/belluikit/ironclad/admin`) — Platform tooling. Create containers, sign, issue licenses, CLI. Depends on Vault.
+- **`devsdk/`** (`github.com/belluikit/ironclad/devsdk`) — Third-party developers. Sign artifacts, create submission bundles. No Vault dependency.
 
 The parent go.work at `github.com/trendvidia/go.work` includes all three modules. The admin and devsdk modules use `replace` directives for local SDK reference.
 
