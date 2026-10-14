@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
 // Package devsdk provides tools for third-party developers to sign artifacts
 // and create submission bundles for the ironclad marketplace.
 //

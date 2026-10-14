@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
 // Package sdk provides the consumer-facing API for ironclad secure containers.
 //
 // This package allows applications to open, validate, and decrypt .tcn
