@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Each module on its own, with the race detector: the loader has Linux
+  # (memfd) and macOS (codesign) paths, so both run.
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.2
+      - name: vet and test each module
+        run: |
+          set -e
+          for m in sdk admin devsdk; do
+            echo "::group::$m"
+            (cd "$m" && go vet ./... && go test -race -count=1 ./...)
+            echo "::endgroup::"
+          done
+
+  checks:
+    name: checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.2
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "::error::not gofmt-ed:"; echo "$out"; exit 1; fi
+      - name: license headers
+        run: go run scripts/headers.go
+      # The loader's Windows path builds nowhere else in CI.
+      - name: vet for Windows
+        run: |
+          set -e
+          for m in sdk admin devsdk; do (cd "$m" && CGO_ENABLED=0 GOOS=windows go vet ./...); done

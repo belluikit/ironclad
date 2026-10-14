@@ -1,0 +1,5 @@
+# The CLI built in place: go build ./cmd/ironclad in admin.
+/admin/ironclad
+coverage.out
+*.test
+.DS_Store
