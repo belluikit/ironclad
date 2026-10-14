@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
 // Package submission defines the submission bundle format (.tcsb) used by
 // third-party developers to submit artifacts to the platform.
 //

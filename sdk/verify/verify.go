@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 TrendVidia, LLC.
+
 // Package verify defines the interfaces that consumer applications must
 // implement to use the ironclad SDK. These interfaces decouple the SDK from
 // any specific key management backend (Vault, HSM, local keys, etc.).
