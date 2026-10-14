@@ -104,19 +104,27 @@ ironclad verify <file.tcn>
 ironclad renew <file.tcn>
 ```
 
-## Building
+## Installing and building
 
-`admin` and `devsdk` use the `sdk` in this repository through a `replace`
-directive, so build from a clone:
+The CLI:
 
 ```
-git clone https://github.com/belluikit/ironclad
-cd ironclad/admin && go build ./cmd/ironclad
+go install github.com/belluikit/ironclad/admin/cmd/ironclad@latest
 ```
 
+The libraries:
+
+```
+go get github.com/belluikit/ironclad/sdk
+go get github.com/belluikit/ironclad/devsdk
+```
+
+In a clone, `go.work` builds `admin` and `devsdk` against the `sdk` beside
+them, so a change to `sdk` is tested with its users before it is tagged.
 Each module tests on its own: `go test ./...` in `sdk`, `admin` and
-`devsdk`. `go run scripts/headers.go` checks that every source file
-carries its license header.
+`devsdk`, and `GOWORK=off` tests them against the released `sdk` instead.
+`go run scripts/headers.go` checks that every source file carries its
+license header.
 
 ## License
 

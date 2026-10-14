@@ -3,7 +3,7 @@ module github.com/belluikit/ironclad/admin
 go 1.26.2
 
 require (
-	github.com/belluikit/ironclad/sdk v0.0.0
+	github.com/belluikit/ironclad/sdk v0.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/spf13/cobra v1.10.2
@@ -37,5 +37,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/belluikit/ironclad/sdk => ../sdk
