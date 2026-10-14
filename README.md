@@ -120,4 +120,4 @@ carries its license header.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE.txt](LICENSE.txt).

@@ -19,3 +19,8 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// v0.2.0 cannot be downloaded: the repository's LICENSE and this
+// module's license/ package collide in its zip on case-insensitive
+// file systems.
+retract v0.2.0
