@@ -1,5 +1,9 @@
 # ironclad
 
+[![CI](https://github.com/belluikit/ironclad/actions/workflows/ci.yml/badge.svg)](https://github.com/belluikit/ironclad/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/belluikit/ironclad/sdk.svg)](https://pkg.go.dev/github.com/belluikit/ironclad/sdk)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
+
 **Encrypted, signed and licensed containers for distributing software.**
 
 ironclad packages a file, such as an executable, a Go plugin or plain
@@ -51,7 +55,8 @@ any key backend fits.
 
 `loader.Open` loads a Go plugin the same way. A developer can tie symbols
 to features: `Lookup` refuses a symbol whose feature isn't in the license's
-entitlements.
+entitlements. On Windows, Go plugins need a Go toolchain patched to
+support them; standard Go cannot load a plugin there.
 
 ```go
 exe, err := loader.OpenExecutable(ctx, "tool.tcn", verifier, unwrapper,
