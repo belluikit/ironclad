@@ -5,6 +5,8 @@ entry names the modules it changes.
 
 ## Unreleased
 
+## admin v0.1.0, devsdk v0.1.0 — 2026-10-14
+
 - **admin, devsdk: installable and usable as dependencies.** They required
   `sdk v0.0.0` through a `replace`, so `go install` of the CLI failed and
   no other module could depend on them. They now require `sdk v0.2.1`, and
