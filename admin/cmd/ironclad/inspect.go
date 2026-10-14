@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	sdk "github.com/belluikit/ironclad/sdk"
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/license"
 	"github.com/spf13/cobra"
-	sdk "github.com/trendvidia/ironclad/sdk"
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/license"
 )
 
 func newInspectCmd() *cobra.Command {

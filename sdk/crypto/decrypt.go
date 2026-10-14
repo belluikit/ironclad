@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/trendvidia/ironclad/sdk/verify"
+	"github.com/belluikit/ironclad/sdk/verify"
 )
 
 // OpenPayload decrypts a payload using envelope encryption:

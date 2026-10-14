@@ -34,12 +34,12 @@ import (
 	"sync"
 	"time"
 
+	sdk "github.com/belluikit/ironclad/sdk"
+	"github.com/belluikit/ironclad/sdk/container"
+	tcrypto "github.com/belluikit/ironclad/sdk/crypto"
+	"github.com/belluikit/ironclad/sdk/submission"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/google/uuid"
-	sdk "github.com/trendvidia/ironclad/sdk"
-	"github.com/trendvidia/ironclad/sdk/container"
-	tcrypto "github.com/trendvidia/ironclad/sdk/crypto"
-	"github.com/trendvidia/ironclad/sdk/submission"
-	"github.com/trendvidia/ironclad/sdk/verify"
 	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 

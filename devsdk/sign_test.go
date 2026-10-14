@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belluikit/ironclad/sdk/submission"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/submission"
 )
 
 // selfSignedCert creates a self-signed cert for testing (in production,

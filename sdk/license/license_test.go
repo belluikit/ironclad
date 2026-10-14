@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/verify"
 )
 
 var (
@@ -171,12 +171,12 @@ func TestValidateEnvelopeDualSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	devCertTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: "Test Dev", Organization: []string{"Test"}},
-		NotBefore:    time.Now().Add(-time.Hour),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-		IsCA:         true,
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "Test Dev", Organization: []string{"Test"}},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	devCertDER, err := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
@@ -228,12 +228,12 @@ func TestValidateEnvelopeBadDeveloperSig(t *testing.T) {
 
 	devKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	devCertTemplate := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: "Test Dev"},
-		NotBefore:    time.Now().Add(-time.Hour),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-		IsCA:         true,
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "Test Dev"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	devCertDER, _ := x509.CreateCertificate(rand.Reader, devCertTemplate, devCertTemplate, &devKey.PublicKey, devKey)
@@ -276,4 +276,3 @@ func TestValidateEnvelopeBadDistributorSig(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "distributor")
 }
-

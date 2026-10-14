@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belluikit/ironclad/sdk/container"
+	"github.com/belluikit/ironclad/sdk/submission"
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/container"
-	"github.com/trendvidia/ironclad/sdk/submission"
-	"github.com/trendvidia/ironclad/sdk/verify"
 	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
@@ -44,8 +44,8 @@ func TestOpenExecutableInvalidPath(t *testing.T) {
 func TestSecureExecutableFeatures(t *testing.T) {
 	se := &SecureExecutable{
 		entitlements: map[string]bool{
-			"pro":     true,
-			"gpu":     true,
+			"pro": true,
+			"gpu": true,
 			// "premium" is NOT licensed
 		},
 	}

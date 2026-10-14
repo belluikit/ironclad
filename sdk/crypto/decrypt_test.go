@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/belluikit/ironclad/sdk/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trendvidia/ironclad/sdk/verify"
 )
 
 func TestOpenPayloadRoundTrip(t *testing.T) {

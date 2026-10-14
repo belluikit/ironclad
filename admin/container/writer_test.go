@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	sdkcontainer "github.com/belluikit/ironclad/sdk/container"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	sdkcontainer "github.com/trendvidia/ironclad/sdk/container"
 )
 
 func testContainer() *sdkcontainer.Container {
