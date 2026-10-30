@@ -1,5 +1,5 @@
-github.com/belluikit/ironclad/sdk v0.2.1 h1:Vf29/nfg+qsz7ctG3TGSy3bNXeL74eAM3hrlvQQFhMk=
-github.com/belluikit/ironclad/sdk v0.2.1/go.mod h1:3qEccGNS28pEZ49GQxnVGSrYh2pTizbySO8iXSVV6p4=
+github.com/belluikit/ironclad/sdk v0.2.2 h1:Jqx2UAFR/YioQphtfF4N/0m9U/e8MlOCG1RCWgdXhqU=
+github.com/belluikit/ironclad/sdk v0.2.2/go.mod h1:cybDiMDEFWT1OI2ulWoHlrHCTeVUrSe4HshbOHS4bio=
 github.com/petermattis/goid v0.0.0-20260113132338-7c7de50cc741 h1:KPpdlQLZcHfTMQRi6bFQ7ogNO0ltFT4PmtwTLW4W+14=
 github.com/petermattis/goid v0.0.0-20260113132338-7c7de50cc741/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=

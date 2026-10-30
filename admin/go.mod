@@ -3,7 +3,7 @@ module github.com/belluikit/ironclad/admin
 go 1.26.2
 
 require (
-	github.com/belluikit/ironclad/sdk v0.2.1
+	github.com/belluikit/ironclad/sdk v0.2.2
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/spf13/cobra v1.10.2
