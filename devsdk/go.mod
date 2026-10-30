@@ -3,7 +3,7 @@ module github.com/belluikit/ironclad/devsdk
 go 1.26.2
 
 require (
-	github.com/belluikit/ironclad/sdk v0.2.1
+	github.com/belluikit/ironclad/sdk v0.2.2
 	github.com/stretchr/testify v1.12.1
 	github.com/trendvidia/protowire-go v1.12.1
 )

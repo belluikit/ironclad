@@ -5,9 +5,17 @@ entry names the modules it changes.
 
 ## Unreleased
 
-- **sdk: containers over 64 MiB read again.** protowire-go v1.6.0 added a
-  64 MiB default limit to `pb.Unmarshal`, which refused any envelope with
-  a larger payload.
+## admin v0.1.1, devsdk v0.1.1 — 2026-10-30
+
+- **admin, devsdk:** they require `sdk v0.2.2`, so they read containers
+  over 64 MiB, and their dependencies are at their latest versions.
+
+## sdk v0.2.2 — 2026-10-30
+
+- **sdk: containers over 64 MiB stay readable.** protowire-go v1.6.0 added
+  a 64 MiB default limit to `pb.Unmarshal`, which would have refused any
+  envelope with a larger payload (#17).
+- **sdk: dependencies upgraded,** protowire-go from v1.0.0 to v1.12.1.
 
 ## admin v0.1.0, devsdk v0.1.0 — 2026-10-14
 
