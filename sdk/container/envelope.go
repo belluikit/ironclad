@@ -5,6 +5,7 @@ package container
 
 import (
 	"encoding/binary"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/trendvidia/protowire-go/encoding/pb"
@@ -125,6 +126,8 @@ func (e *ContentEnvelope) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary deserializes an envelope from protowire binary format.
+// The envelope carries the payload, and a container can exceed 4 GB, so
+// pb's default MaxMessageSize does not apply.
 func (e *ContentEnvelope) UnmarshalBinary(data []byte) error {
-	return pb.Unmarshal(data, e)
+	return pb.UnmarshalOptions{MaxMessageSize: math.MaxInt}.Unmarshal(data, e)
 }
