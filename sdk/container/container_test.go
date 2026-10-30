@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trendvidia/protowire-go/encoding/pb"
 )
 
 func testEnvelope() ContentEnvelope {
@@ -208,4 +209,17 @@ func TestContentTypeExecutable(t *testing.T) {
 	ct, err := ParseContentType("executable")
 	require.NoError(t, err)
 	assert.Equal(t, ContentTypeExecutable, ct)
+}
+
+// TestEnvelopeLargerThanPBDefault reads an envelope past pb.MaxMessageSize:
+// the payload lives in the envelope, so a large artifact gets here.
+func TestEnvelopeLargerThanPBDefault(t *testing.T) {
+	e := testEnvelope()
+	e.Payload = make([]byte, pb.MaxMessageSize+1)
+	data, err := e.MarshalBinary()
+	require.NoError(t, err)
+
+	var got ContentEnvelope
+	require.NoError(t, got.UnmarshalBinary(data))
+	assert.Equal(t, len(e.Payload), len(got.Payload))
 }
