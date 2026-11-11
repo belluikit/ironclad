@@ -5,9 +5,9 @@ go 1.26.2
 require (
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.12.1
-	github.com/trendvidia/protowire-go v1.12.1
+	github.com/trendvidia/protowire-go v1.17.0
 	github.com/zalando/go-keyring v0.2.8
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
